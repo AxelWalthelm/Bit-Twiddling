@@ -2,8 +2,8 @@
 
 Experimenting with C/C++ implementations for bit reversal, find first set bit, population count, etc.
 
-Many recepies for "bit twiddling" were collected by
-[Sean Eron Anderson](https://graphics.stanford.edu/~seander/bithacks.html). Appearantly this did became the main online reference for what to do if no compiler intrinsic is available for your current platform.
+Many recipes for "bit twiddling" were collected by
+[Sean Eron Anderson](https://graphics.stanford.edu/~seander/bithacks.html). Apparently this did became the main online reference for what to do if no compiler intrinsic is available for your current platform.
 
 ## Bit Reversal
 
@@ -19,12 +19,15 @@ CUDA has [intrinsics](https://docs.nvidia.com/cuda/cuda-math-api/cuda_math_api/g
 
 [Bit Twiddling Hacks](https://graphics.stanford.edu/~seander/bithacks.html#BitReverseObvious) show a number of options to work around a missing intrinsic. Especially interesting is the idea to use the multiplication hardware to reverse 8 bits with [4 operations, two 64-bit multiply](https://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith64Bits) or with [7 operations, three 32 bit multiply](https://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith32Bits).
 
-I did look into the 32 bit case and found: a 32 bit multiplication unit can reverse 7 bits this way, but not 8. But there are several options to do the 7 bit reverse, including one that lead me to a solution with **6 operations, two 32 bit multiply** only, which is faster on my Intel Celeron and will &mdash; in all likelihood &mdash; also perform better on many other hardware platforms:
+I did look into the 32 bit case and found: a 32 bit multiplication unit can reverse 7 bits this way, but not 8.[^1] But there are several options to do the 7 bit reverse, including one that lead me to a solution with **6 operations, two 32 bit multiply** only, which is faster on my Intel Celeron and will &mdash; in all likelihood &mdash; also perform better on many other hardware platforms:
+
+[^1]: At least within the mask-and-shift scheme I consider the basic idea of this approach. There may be a solution "outside of this box", or there may be a mistake in my Python script to generate all solutions. However when looking for a solution manually, the available space to place the masks without conflict looks awfully tight, so I *believe* it is not possible.
+
 
 ```
 inline uint8_t bits_rev8_new(uint8_t x)
 {
-	return uint8_t((((uint32_t(x) * 0x01010101u) & 0x10488224u) * 0x10400411u >> 25) | (x << 7));
+    return uint8_t((((uint32_t(x) * 0x01010101u) & 0x10488224u) * 0x10400411u >> 25) | (x << 7));
 }
 ```
 
