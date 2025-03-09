@@ -126,11 +126,13 @@ inline uint32_t bits_rev32_mem(uint32_t x)
 
 void main()
 {
+#if 0
 	// test k_out_of_n_bits
 	k_out_of_n_bits_test();
 	printf("<return>\n");
 	getchar();
 	return;
+#endif
 
 	semi_exhaustive_search_for_8bit_rev();
 	printf("<return>\n");
