@@ -111,6 +111,19 @@ public:
 	const int bit_array_items;
 	INT* const bit_array;
 
+
+	void reset()
+	{
+		index = 0;
+
+		for (int i = 0; i < k; i++)
+			counters[i] = i;
+
+		for (int i = 0; i < bit_array_items; i++)
+			bit_array[i] = get_bits(i * INT_bit_count);
+	}
+
+
 	k_out_of_n_bits(int k, int n) :
 		k(k),
 		n(n),
@@ -124,12 +137,12 @@ public:
 		assert(k >= 0);
 		assert(k <= n);
 
-		for (int i = 0; i < k; i++)
-			counters[i] = i;
-
-		for (int i = 0; i < bit_array_items; i++)
-			bit_array[i] = get_bits(i * INT_bit_count);
+		reset();
 	}
+
+
+	// For best performance copies shall be avoided. Note: default copy constructor does not work.
+	k_out_of_n_bits(k_out_of_n_bits const& other) = delete;
 
 
 	~k_out_of_n_bits()
@@ -139,15 +152,21 @@ public:
 	}
 
 
-	void print(const char* name)
+	void print(const char* name, const char* begin = "k_out_of_n_bits ", const char* end = "\n")
 	{
-		printf("k_out_of_n_bits %s(%d, %d) %3d/%d: ", name, k, n, index, count);
+		printf("%s%s(%d, %d) %3d/%d: ", begin, name, k, n, index, count);
 		for (int i = 0; i < k; i++)
 			printf(" %2d", counters[i]);
 		for (int i = 0; i < bit_array_items; i++)
 			printf(" 0x%08x", bit_array[i]);
-		printf("\n");
+		printf(end);
 	}
+
+	INT const& get(int item = 0) const { assert(0 <= item && item < bit_array_items); return bit_array[item]; }
+
+	INT const& operator*() const { return get(); }
+
+	INT const& operator[](int i) const { return get(i); }
 
 	bool set_index(int index)
 	{
@@ -194,3 +213,25 @@ public:
 			return true;
 	}
 };
+
+namespace generators
+{
+	// A recursive variadic function to increment multiple generators like k_out_of_n_bits
+
+	template <typename TGenerator>
+	inline bool next(TGenerator& generator) 
+	{
+		return generator.next();
+	}
+
+	template<typename TGenerator, typename ... TGenerators>
+	inline bool next(TGenerator& generator, TGenerators& ... generators)
+	{
+		if (generator.next())
+			return true;
+
+		generator.reset();
+
+		return next(generators...);
+	}
+}
