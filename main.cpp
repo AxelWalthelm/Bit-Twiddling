@@ -126,7 +126,7 @@ inline uint32_t bits_rev32_mem(uint32_t x)
 
 void main()
 {
-#if 0
+#if 1
 	// test k_out_of_n_bits
 	k_out_of_n_bits_test();
 	printf("<return>\n");

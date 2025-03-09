@@ -1,5 +1,52 @@
 #pragma once
 #include <assert.h>
+#include <stdint.h>
+#include <limits.h>
+#include <limits>
+
+namespace
+{
+// The following numeric checks are intended to be used in debug assert
+// to detect numeric boundary problems during debug sessions.
+// These checks are slow and may not catch all overflow/underflow problems.
+// Future hint: better use standard checks like stdckdint.h from C23
+
+template<typename NUM1, typename NUM2>
+static inline bool addition_overflows(NUM1 n1, NUM2 n2)
+{
+	// n2 > 0: n1 + n2 > MAX
+	// n2 < 0: n1 + n2 < MIN
+	return n2 >= 0
+		? n1 > std::numeric_limits<decltype(n1 + n2)>::max() - n2
+		: n1 < std::numeric_limits<decltype(n1 + n2)>::lowest() - n2;
+}
+
+template<typename NUM1, typename NUM2>
+static inline bool multiplication_overflows(NUM1 n1, NUM2 n2)
+{
+	// n1 > 0, n2 > 0: n1 * n2 > MAX
+	// n1 > 0, n2 < 0: n1 * n2 < MIN
+	// n1 < 0, n2 > 0: n1 * n2 < MIN
+	// n1 < 0, n2 < 0: n1 * n2 > MAX
+	return (n1 < 0) == (n2 < 0)
+		? n1 > std::numeric_limits<decltype(n1 + n2)>::max() / n2
+		: n1 < std::numeric_limits<decltype(n1 + n2)>::lowest() / n2;
+}
+
+template<typename INT1, typename INT2>
+static inline bool division_truncates(INT1 n1, INT2 n2)
+{
+	return n2 != 0 && (n1 / n2) * n2 != n1;
+}
+
+template<typename NUM1, typename NUM2>
+static inline bool numeric_cast_fails(NUM2 n2)
+{
+	NUM1 n1 = static_cast<NUM1>(n2);
+	return n1 != n2 || (n1 < 0) != (n2 < 0);
+}
+
+} // anonymous namespace
 
 template<typename INT = uint32_t>
 class k_out_of_n_bits
@@ -15,18 +62,6 @@ class k_out_of_n_bits
 
 	static_assert(INT_bit_count == (1 << INT_addr_shift), "INT must have power of 2 bits"); // e.g. INT can not be a 24 bit integer
 
-
-	template<typename INT1, typename INT2>
-	static inline bool multiplication_overflows(INT1 n1, INT2 n2)
-	{
-		return n2 != 0 && (n1 * n2) / n2 != n1;
-	}
-
-	template<typename INT1, typename INT2>
-	static inline bool division_truncates(INT1 n1, INT2 n2)
-	{
-		return n2 != 0 && (n1 / n2) * n2 != n1;
-	}
 
 	static unsigned binomial_coefficient(unsigned n, unsigned k)
 	{
@@ -168,6 +203,10 @@ public:
 
 	INT const& operator[](int i) const { return get(i); }
 
+	int get_count() const { return count; }
+
+	int get_index() const { return index; }
+
 	bool set_index(int index)
 	{
 		if (index < 0 || index >= count || k <= 0)
@@ -182,6 +221,12 @@ public:
 			bit_array[i] = get_bits(i * INT_bit_count);
 
 		return true;
+	}
+
+	bool set_index(uint64_t index)
+	{
+		assert(!numeric_cast_fails<int>(index));
+		return index <= INT_MAX && set_index(int(index));
 	}
 
 	bool next()
@@ -232,6 +277,63 @@ namespace generators
 
 		generator.reset();
 
-		return next(generators...);
+		return next(generators ...);
+	}
+
+
+	// A recursive variadic function to get the possible number of combinations of multiple generators like k_out_of_n_bits
+
+	template <typename TGenerator>
+	inline uint64_t get_count(TGenerator const& generator) 
+	{
+		return generator.get_count();
+	}
+
+	template<typename TGenerator, typename ... TGenerators>
+	inline uint64_t get_count(TGenerator const& generator, TGenerators const& ... generators)
+	{
+		uint64_t count = generator.get_count();
+		uint64_t counts = get_count(generators ...);
+		assert(!multiplication_overflows(count, counts));
+		return count * counts;
+	}
+
+
+	// A recursive variadic function to get index of multiple generators like k_out_of_n_bits
+
+	template <typename TGenerator>
+	inline uint64_t get_index(TGenerator const& generator) 
+	{
+		return generator.get_index();
+	}
+
+	template<typename TGenerator, typename ... TGenerators>
+	inline uint64_t get_index(TGenerator const& generator, TGenerators const& ... generators)
+	{
+		uint64_t count1 = generator.get_count();
+		uint64_t index1 = generator.get_index();
+		uint64_t index2 = get_index(generators ...);
+		assert(!multiplication_overflows(index2, count1));
+		assert(!addition_overflows(index2 * count1, index1));
+		uint64_t index = index2 * count1 + index1;
+		return index;
+	}
+
+
+	// A recursive variadic function to set index of multiple generators like k_out_of_n_bits
+
+	template <typename TGenerator>
+	inline bool set_index(uint64_t index, TGenerator& generator) 
+	{
+		return index < generator.get_count() && generator.set_index(index);
+	}
+
+	template<typename TGenerator, typename ... TGenerators>
+	inline bool set_index(uint64_t index, TGenerator& generator, TGenerators& ... generators)
+	{
+		auto count = generator.get_count();
+		auto div = index / count;
+		auto rem = index % count;
+		return set_index(div, generators ...) && generator.set_index(rem);
 	}
 }

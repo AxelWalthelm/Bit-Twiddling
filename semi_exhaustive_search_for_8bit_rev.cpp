@@ -89,6 +89,9 @@ void semi_exhaustive_search_for_8bit_rev()
 	k_out_of_n_bits<uint32_t> replicate(4, 32);
 	k_out_of_n_bits<uint32_t> select(8, 32);
 	k_out_of_n_bits<uint32_t> shift(5, 32);
+
+	printf("Total number of combinations: %lld\n", generators::get_count(shift, select, replicate));
+
 	do
 	{
 		// use counters
