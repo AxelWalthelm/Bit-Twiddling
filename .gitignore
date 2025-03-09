@@ -494,4 +494,4 @@ CMakeUserPresets.json
 ############
 
 /.vscode/
-/build/
+**/build/
