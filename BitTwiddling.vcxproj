@@ -114,10 +114,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="HighResolutionTimer.cpp" />
+    <ClCompile Include="k_out_of_n_bits_test.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="semi_exhaustive_search_for_8bit_rev.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BitTwiddling.hpp" />
     <ClInclude Include="HighResolutionTimer.h" />
+    <ClInclude Include="k_out_of_n_bits.hpp" />
+    <ClInclude Include="k_out_of_n_bits_test.h" />
+    <ClInclude Include="semi_exhaustive_search_for_8bit_rev.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
