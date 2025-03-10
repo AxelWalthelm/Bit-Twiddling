@@ -129,14 +129,17 @@ uint32_t uint32_sqrt(uint32_t value) { return host::uint32_sqrt_float_and_check(
 // but "#include <cuda/cmath>" is not always available and documentation states that
 // it is better for 64 bit or unsigned, but not for int.
 // For unsigned types "min(value, 1 + ((value - 1) / divisor)" is used.
+template<typename INT>
 __device__ __host__ inline
-int div_ceil(int a, int b) { return (a + b - 1) / b; }
+INT div_ceil(INT a, INT b) { return (a + b - 1) / b; }
 #else // #ifdef __CUDACC__
 inline
-int div_ceil(int a, int b) { return (a + b - 1) / b; }
+template<typename INT>
+INT div_ceil(INT a, INT b) { return (a + b - 1) / b; }
 #endif // #ifdef __CUDACC__
 
 
+#if 0
 // Population count of bits in number.
 #if defined(__CUDACC__) && defined(__CUDA_ARCH__)
 __device__ inline int bits_popcount(uint32_t x) { return __popc(x); }
@@ -152,6 +155,7 @@ inline int bits_popcount(uint32_t x)
 	x = ((x >> 0x10) & 0x0000ffffu) + (x & 0x0000ffffu);
 	return x;
 }
+#endif
 #endif
 
 
@@ -176,6 +180,7 @@ inline int bits_ctz(uint32_t x)
 #endif
 
 
+#if 0
 // Find first set bit in number, counting from least significant bit as bit 1.
 #if defined(__CUDACC__) && defined(__CUDA_ARCH__)
 __device__ inline int bits_ffs(uint32_t x) { return __ffs(x); }
@@ -194,6 +199,7 @@ inline int bits_ffs(uint32_t x)
 	if ((x & 0x00000003u) == 0) n += 0x02, x >>= 0x02;
 	return n - (x & 1);
 }
+#endif
 #endif
 
 #if defined(__CUDACC__) && defined(__CUDA_ARCH__)

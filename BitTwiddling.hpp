@@ -1,9 +1,14 @@
 #pragma once
 #include <stdint.h>
 
+#ifndef CUDA_ALL
+#define CUDA_ALL
+#endif
+
 namespace
 {
 
+CUDA_ALL
 inline int bits_popcount(uint32_t x)
 {
 	x = ((x >> 0x01) & 0x55555555u) + (x & 0x55555555u);
@@ -14,6 +19,7 @@ inline int bits_popcount(uint32_t x)
 	return x;
 }
 
+CUDA_ALL
 inline int bits_ffs(uint32_t x)
 {
 	if (x == 0)
@@ -42,6 +48,7 @@ inline int bits_ffs(uint32_t x)
             ------------------------------------
             hgfedcb
 */
+CUDA_ALL
 inline uint8_t bits_rev7(uint8_t x)
 {
 	return uint8_t(((uint32_t(x) * 0x01010101u) & 0x08122441u) * 0x80082082u >> 25); // 4 ops (2 mult)
@@ -82,6 +89,7 @@ f(x) = (x * 0x1010101u & 0x10244882u) * 0x40041041u
 f(x) = (x * 0b1000000010000000100000001u & 0b10000001001000100100010000010u) * 0b1000000000001000001000001000001u
 */
 
+CUDA_ALL
 inline uint8_t bits_rev8(uint8_t x)
 {
 	//f(x) = (x * 0x1010101u & 0x10488224u) * 0x10400411u

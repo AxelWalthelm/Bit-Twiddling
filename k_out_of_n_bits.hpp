@@ -4,6 +4,7 @@
 #include <limits.h>
 #include <limits>
 
+
 namespace
 {
 // The following numeric checks are intended to be used in debug assert
@@ -12,6 +13,7 @@ namespace
 // Future hint: better use standard checks like stdckdint.h from C23
 
 template<typename NUM1, typename NUM2>
+CUDA_ALL
 static inline bool addition_overflows(NUM1 n1, NUM2 n2)
 {
 	// n2 > 0: n1 + n2 > MAX
@@ -22,28 +24,31 @@ static inline bool addition_overflows(NUM1 n1, NUM2 n2)
 }
 
 template<typename NUM1, typename NUM2>
+CUDA_ALL
 static inline bool multiplication_overflows(NUM1 n1, NUM2 n2)
 {
 	// n1 > 0, n2 > 0: n1 * n2 > MAX
 	// n1 > 0, n2 < 0: n1 * n2 < MIN
 	// n1 < 0, n2 > 0: n1 * n2 < MIN
 	// n1 < 0, n2 < 0: n1 * n2 > MAX
-	return (n1 < 0) == (n2 < 0)
+	return (n1 <= 0) == (n2 <= 0)
 		? n1 > std::numeric_limits<decltype(n1 + n2)>::max() / n2
 		: n1 < std::numeric_limits<decltype(n1 + n2)>::lowest() / n2;
 }
 
 template<typename INT1, typename INT2>
+CUDA_ALL
 static inline bool division_truncates(INT1 n1, INT2 n2)
 {
 	return n2 != 0 && (n1 / n2) * n2 != n1;
 }
 
 template<typename NUM1, typename NUM2>
+CUDA_ALL
 static inline bool numeric_cast_fails(NUM2 n2)
 {
 	NUM1 n1 = static_cast<NUM1>(n2);
-	return n1 != n2 || (n1 < 0) != (n2 < 0);
+	return n1 != n2 || (n1 <= 0) != (n2 <= 0);
 }
 
 } // anonymous namespace
@@ -51,6 +56,7 @@ static inline bool numeric_cast_fails(NUM2 n2)
 template<typename INT = uint32_t>
 class k_out_of_n_bits
 {
+	CUDA_ALL
 	constexpr inline static size_t log2_of_pow2(size_t pow2) noexcept
 	{
 		return pow2 <= 1 ? 0 : 1 + log2_of_pow2(pow2 / 2);
@@ -63,6 +69,7 @@ class k_out_of_n_bits
 	static_assert(INT_bit_count == (1 << INT_addr_shift), "INT must have power of 2 bits"); // e.g. INT can not be a 24 bit integer
 
 
+	CUDA_ALL
 	static unsigned binomial_coefficient(unsigned n, unsigned k)
 	{
 		assert(k <= n);
@@ -89,6 +96,7 @@ class k_out_of_n_bits
 	// Generate the [index]th lexicographically ordered set of [k] elements in [n] into counters,
 	// where 0 <= index < binomial_coefficient(n, k) and
 	// counters has k items with 0 <= counters[i] < n for 0 <= i < k.
+	CUDA_ALL
 	static void set_combination(int* counters, int n, int k, int index)
 	{
 		if (k <= 1)
@@ -114,9 +122,11 @@ class k_out_of_n_bits
 		counters[k-1] = counters[k-2] + 1 + index - sum;
 	}
 
+	CUDA_ALL
 	static void invert_bit(INT* array, unsigned int bit) { array[bit >> INT_addr_shift] ^= INT(1) << (bit & INT_addr_mask); }
 
 	// optimized version of "invert_bit(array, bit); invert_bit(array, bit + 1);"
+	CUDA_ALL
 	static void invert_2bits(INT* array, unsigned int bit)
 	{
 		unsigned int item = bit >> INT_addr_shift;
@@ -126,6 +136,7 @@ class k_out_of_n_bits
 			array[item + 1] ^= INT(1);
 	}
 
+	CUDA_ALL
 	INT get_bits(int offset = 0) const
 	{
 		INT bits = 0;
@@ -147,6 +158,7 @@ public:
 	INT* const bit_array;
 
 
+	CUDA_ALL
 	void reset()
 	{
 		index = 0;
@@ -159,6 +171,7 @@ public:
 	}
 
 
+	CUDA_ALL
 	k_out_of_n_bits(int k, int n) :
 		k(k),
 		n(n),
@@ -177,9 +190,11 @@ public:
 
 
 	// For best performance copies shall be avoided. Note: default copy constructor does not work.
+	CUDA_ALL
 	k_out_of_n_bits(k_out_of_n_bits const& other) = delete;
 
 
+	CUDA_ALL
 	~k_out_of_n_bits()
 	{
 		delete [] counters;
@@ -187,6 +202,7 @@ public:
 	}
 
 
+	CUDA_ALL
 	void print(const char* name, const char* begin = "k_out_of_n_bits ", const char* end = "\n")
 	{
 		printf("%s%s(%d, %d) %3d/%d: ", begin, name, k, n, index, count);
@@ -194,19 +210,25 @@ public:
 			printf(" %2d", counters[i]);
 		for (int i = 0; i < bit_array_items; i++)
 			printf(" 0x%08x", bit_array[i]);
-		printf(end);
+		printf("%s", end);
 	}
 
+	CUDA_ALL
 	INT const& get(int item = 0) const { assert(0 <= item && item < bit_array_items); return bit_array[item]; }
 
+	CUDA_ALL
 	INT const& operator*() const { return get(); }
 
+	CUDA_ALL
 	INT const& operator[](int i) const { return get(i); }
 
+	CUDA_ALL
 	int get_count() const { return count; }
 
+	CUDA_ALL
 	int get_index() const { return index; }
 
+	CUDA_ALL
 	bool set_index(int index)
 	{
 		if (index < 0 || index >= count || k <= 0)
@@ -223,12 +245,14 @@ public:
 		return true;
 	}
 
+	CUDA_ALL
 	bool set_index(uint64_t index)
 	{
 		assert(!numeric_cast_fails<int>(index));
 		return index <= INT_MAX && set_index(int(index));
 	}
 
+	CUDA_ALL
 	bool next()
 	{
 		// find counter to increment
@@ -242,34 +266,46 @@ public:
 					return false;
 			} while (counters[ci] + 1 >= counters[ci + 1]);
 
-			// increment counter
-			invert_2bits(bit_array, counters[ci]++);
+		// increment counter
+		invert_2bits(bit_array, counters[ci]++);
 
-			// reset all overflown counters
-			for (int i = ci + 1; i < k; i++)
-			{
-				invert_bit(bit_array, counters[i]);
-				counters[i] = counters[i-1] + 1;
-				invert_bit(bit_array, counters[i]);
-			}
+		// reset all overflown counters
+		for (int i = ci + 1; i < k; i++)
+		{
+			invert_bit(bit_array, counters[i]);
+			counters[i] = counters[i-1] + 1;
+			invert_bit(bit_array, counters[i]);
+		}
 
-			index++;
+		index++;
 
-			return true;
+		return true;
 	}
 };
+
+// TODO: Replicator mask generator
+/*
+    //    00000001000000010000000100000001
+    // 0         *       *       *       *  4 => 1^4 = 1
+    // 1  *     ***     ***     ***     ** 23 => 3^4 = 81
+    // 2  **   *****   *****   *****   *** 38 => 5^4 = 625
+    // 3  *** ******* ******* ******* **** 38 => 7^4 = 2401
+    // 4  ******************************** 38 => 9^4 = 6561
+*/
 
 namespace generators
 {
 	// A recursive variadic function to increment multiple generators like k_out_of_n_bits
 
 	template <typename TGenerator>
+	CUDA_ALL
 	inline bool next(TGenerator& generator) 
 	{
 		return generator.next();
 	}
 
 	template<typename TGenerator, typename ... TGenerators>
+	CUDA_ALL
 	inline bool next(TGenerator& generator, TGenerators& ... generators)
 	{
 		if (generator.next())
@@ -284,12 +320,14 @@ namespace generators
 	// A recursive variadic function to get the possible number of combinations of multiple generators like k_out_of_n_bits
 
 	template <typename TGenerator>
+	CUDA_ALL
 	inline uint64_t get_count(TGenerator const& generator) 
 	{
 		return generator.get_count();
 	}
 
 	template<typename TGenerator, typename ... TGenerators>
+	CUDA_ALL
 	inline uint64_t get_count(TGenerator const& generator, TGenerators const& ... generators)
 	{
 		uint64_t count = generator.get_count();
@@ -302,12 +340,14 @@ namespace generators
 	// A recursive variadic function to get index of multiple generators like k_out_of_n_bits
 
 	template <typename TGenerator>
+	CUDA_ALL
 	inline uint64_t get_index(TGenerator const& generator) 
 	{
 		return generator.get_index();
 	}
 
 	template<typename TGenerator, typename ... TGenerators>
+	CUDA_ALL
 	inline uint64_t get_index(TGenerator const& generator, TGenerators const& ... generators)
 	{
 		uint64_t count1 = generator.get_count();
@@ -323,12 +363,14 @@ namespace generators
 	// A recursive variadic function to set index of multiple generators like k_out_of_n_bits
 
 	template <typename TGenerator>
+	CUDA_ALL
 	inline bool set_index(uint64_t index, TGenerator& generator) 
 	{
 		return index < generator.get_count() && generator.set_index(index);
 	}
 
 	template<typename TGenerator, typename ... TGenerators>
+	CUDA_ALL
 	inline bool set_index(uint64_t index, TGenerator& generator, TGenerators& ... generators)
 	{
 		auto count = generator.get_count();

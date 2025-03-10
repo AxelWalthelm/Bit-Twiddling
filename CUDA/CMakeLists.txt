@@ -2,6 +2,8 @@
 
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$ENV{HOME}")
+
 project(BitTwiddlingProject LANGUAGES CXX CUDA)
 
 include(CTest)
@@ -14,6 +16,7 @@ add_compile_options("$<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_72,code=sm
 add_compile_options("$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:Debug>>:--debug;--device-debug;--optimize=0>")
 add_compile_options("$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:Release>>:-DNDEBUG;-lineinfo>")  # NDEBUG for assert in host code of .cu files
 add_compile_options("$<$<COMPILE_LANGUAGE:CUDA>:--relocatable-device-code=true>")  # often recommended, but why exactly?
+add_compile_options("$<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>")  # std::numeric_limits
 
 
 list(APPEND cxx_warning_flags "-Wall" "-Wextra") # "-Werror"
@@ -47,6 +50,7 @@ if(BUILD_TESTING)
 
   add_executable(BitTwiddling_test
     main.cpp
+    ../semi_exhaustive_search_for_8bit_rev.cpp
     HighResolutionTimer.cpp
   )
 
