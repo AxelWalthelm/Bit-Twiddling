@@ -1,12 +1,28 @@
 #pragma once
+#include <stdio.h>
 #include <assert.h>
 #include <stdint.h>
 #include <limits.h>
 #include <limits>
 
+#ifndef CUDA_ALL
+#define CUDA_ALL
+#endif
 
 namespace
 {
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+// ignored by CUDA nvcc?
+#pragma GCC diagnostic ignored "-Wtype-limits"
+//#pragma GCC diagnostic ignored "-Wtautological-compare"
+//#pragma GCC diagnostic ignored "-Wfloat-equal"
+//#pragma GCC diagnostic ignored "-Wsign-conversion"
+//#pragma GCC diagnostic ignored "-Wfloat-conversion"
+//#pragma GCC diagnostic ignored "-Wuseless-cast"
+#endif
+
 // The following numeric checks are intended to be used in debug assert
 // to detect numeric boundary problems during debug sessions.
 // These checks are slow and may not catch all overflow/underflow problems.
@@ -51,17 +67,23 @@ static inline bool numeric_cast_fails(NUM2 n2)
 	return n1 != n2 || (n1 <= 0) != (n2 <= 0);
 }
 
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 } // anonymous namespace
 
-template<typename INT = uint32_t>
-class k_out_of_n_bits
+namespace
 {
 	CUDA_ALL
 	constexpr inline static size_t log2_of_pow2(size_t pow2) noexcept
 	{
 		return pow2 <= 1 ? 0 : 1 + log2_of_pow2(pow2 / 2);
 	}
+}
 
+template<typename INT = uint32_t>
+class k_out_of_n_bits
+{
 	constexpr static int INT_bit_count = sizeof(INT) * 8; // e.g. 32
 	constexpr static size_t INT_addr_mask = INT_bit_count - 1; // e.g. 31
 	constexpr static size_t INT_addr_shift = log2_of_pow2(INT_bit_count); // e.g. 5
@@ -285,13 +307,163 @@ public:
 
 // TODO: Replicator mask generator
 /*
-    //    00000001000000010000000100000001
-    // 0         *       *       *       *  4 => 1^4 = 1
-    // 1  *     ***     ***     ***     ** 23 => 3^4 = 81
-    // 2  **   *****   *****   *****   *** 38 => 5^4 = 625
-    // 3  *** ******* ******* ******* **** 38 => 7^4 = 2401
-    // 4  ******************************** 38 => 9^4 = 6561
+    //      00000001000000010000000100000001
+    // k=0         *       *       *       *  4 => 1^4 = 1
+    // k=1  *     ***     ***     ***     ** 23 => 3^4 = 81
+    // k=2  **   *****   *****   *****   *** 38 => 5^4 = 625
+    // k=3  *** ******* ******* ******* **** 38 => 7^4 = 2401
+    // k=4  ******************************** 38 => 9^4 = 6561
 */
+class generate_replicator
+{
+	constexpr static int INT_bit_count = sizeof(uint32_t) * 8; // e.g. 32
+	constexpr static size_t INT_addr_mask = INT_bit_count - 1; // e.g. 31
+	constexpr static size_t INT_addr_shift = log2_of_pow2((size_t)INT_bit_count); // e.g. 5
+
+	CUDA_ALL
+	uint32_t get_bits() const
+	{
+		uint32_t bits = 0;
+		for (int i = 0; i < 4; i++)
+		{
+			int c = counters[i] + 1; // c in [1, k]
+			// c   1   2   3   4   5   6   7   8   9
+			// di  0   1  -1   2  -2   3  -3   4  -4
+			const int di = (c & 1) ? -(c >> 1) : (c >> 1);
+			const int bi = (8 * i + di + 32) % 32;
+			assert(0 <= bi && bi <= 31);
+			bits |= uint32_t(1) << bi;
+		}
+
+		return bits;
+	}
+
+public:
+
+	const int k;
+	const int n;
+	const int count;
+	int index;
+	int counters[4];
+
+	CUDA_ALL
+	void reset()
+	{
+		index = 0;
+
+		for (int i = 0; i < 4; i++)
+			counters[i] = 0;
+	}
+
+
+	CUDA_ALL
+	generate_replicator(int k) :
+		k(k),
+		n(2 * k + 1),
+		count(n * n * n * n),
+		index(0)
+	{
+		assert(k >= 0);
+		assert(k < 32);
+
+		reset();
+	}
+
+
+	// For best performance copies shall be avoided.
+	CUDA_ALL
+	generate_replicator(generate_replicator const& other) = delete;
+
+
+	CUDA_ALL
+	void print(const char* name, const char* begin = "generate_replicator ", const char* end = "\n")
+	{
+		printf("%s%s(%d) %3d/%d: ", begin, name, k, index, count);
+		for (int i = 0; i < 4; i++)
+			printf(" %2d", counters[i]);
+		printf(" 0x%08x", get_bits());
+		printf("%s", end);
+	}
+
+	CUDA_ALL
+	uint32_t get() const { return get_bits(); }
+
+	CUDA_ALL
+	uint32_t operator*() const { return get(); }
+
+	CUDA_ALL
+	uint32_t operator[](int i) const { assert(i == 0); return get(); }
+
+	CUDA_ALL
+	int get_count() const { return count; }
+
+	CUDA_ALL
+	int get_index() const { return index; }
+
+	CUDA_ALL
+	bool set_index(int index)
+	{
+		if (index < 0 || index >= count)
+			return false;
+
+		this->index = index;
+
+		for (int i = 4 - 1; i >= 0; i--)
+		{
+			counters[i] = index % n;
+			index = index / n;
+		}
+		assert(index == 0);
+
+		return true;
+	}
+
+	CUDA_ALL
+	bool set_index(uint64_t index)
+	{
+		assert(!numeric_cast_fails<int>(index));
+		return index <= INT_MAX && set_index(int(index));
+	}
+
+	CUDA_ALL
+	bool next()
+	{
+		// find counter to increment
+		int ci = 4 - 1;
+		if (ci < 0)
+			return false;
+		if (counters[ci] >= n - 1)
+			do
+			{
+				if (--ci < 0)
+					return false;
+			} while (counters[ci] >= n - 1);
+
+		// increment counter
+		counters[ci]++;
+
+		// reset all overflown counters
+		for (int i = ci + 1; i < 4; i++)
+		{
+			counters[i] = 0;
+		}
+
+		index++;
+
+		#ifndef NDEBUG
+		// self-test
+		{
+			generate_replicator other(k);
+			other.set_index(index);
+			for (int i = 0; i < 4; i++)
+				assert(counters[i] == other.counters[i]);
+		}
+		#endif
+
+		return true;
+	}
+};
+
 
 namespace generators
 {

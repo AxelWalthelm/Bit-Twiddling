@@ -26,7 +26,7 @@ void semi_exhaustive_search_for_8bit_rev()
 	// select: 8 (8-10...) // less than 8 would mean not all input bits are used in the end result; more than 8 means some input bits are used muliple times (doubful, but it could lead to a solution)
 	// shift: 4-8... // 4 means the input bits are shifted in 4 groups, 5 is more likely as this is used in 7 bit reversal, 8 means every input bit is shifted differently (doubtful, but may lead to a solution), more than 8 will probably lead to overlap and corrupted bits due to carry in multiplication  (highly doubful, but it could lead to a solution).
 
-	k_out_of_n_bits<uint32_t> replicate(4, 32);
+	generate_replicator       replicate(2);
 	k_out_of_n_bits<uint32_t> select(8, 32);
 	k_out_of_n_bits<uint32_t> shift(5, 32);
 

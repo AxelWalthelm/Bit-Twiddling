@@ -19,7 +19,7 @@ add_compile_options("$<$<COMPILE_LANGUAGE:CUDA>:--relocatable-device-code=true>"
 add_compile_options("$<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>")  # std::numeric_limits
 
 
-list(APPEND cxx_warning_flags "-Wall" "-Wextra") # "-Werror"
+list(APPEND cxx_warning_flags "-Wall" "-Wextra") # "-Werror"  "-fdiagnostics-show-option" "-Wno-type-limits"
 foreach(flag IN LISTS cxx_warning_flags)
     add_compile_options("$<$<COMPILE_LANGUAGE:CUDA>:--compiler-options=${flag}>")
     add_compile_options("$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:${flag}>")
