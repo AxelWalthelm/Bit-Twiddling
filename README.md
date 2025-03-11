@@ -7,6 +7,10 @@ Many recipes for "bit twiddling" were collected by
 
 ## Bit Reversal
 
+C++20 introduced many bit-level std:: operations in [header file &lt;bit&gt;](https://en.cppreference.com/w/cpp/header/bit), but bit reversal is missing.
+
+C23 introcuded a similar [header file &lt;stdbit.h&gt;](https://en.cppreference.com/w/c/numeric/bit_manip), but also without bit reversal.
+
 GCC seems to have no
 [intrinsic](https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html)
 for this yet, but may have
@@ -19,9 +23,12 @@ CUDA has [intrinsics](https://docs.nvidia.com/cuda/cuda-math-api/cuda_math_api/g
 
 [Bit Twiddling Hacks](https://graphics.stanford.edu/~seander/bithacks.html#BitReverseObvious) show a number of options to work around a missing intrinsic. Especially interesting is the idea to use the multiplication hardware to reverse 8 bits with [4 operations, two 64-bit multiply](https://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith64Bits) or with [7 operations, three 32 bit multiply](https://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith32Bits).
 
-I did look into the 32 bit case and found: a 32 bit multiplication unit can reverse 7 bits this way, but not 8.[^1] But there are several options to do the 7 bit reverse, including one that lead me to a solution with **6 operations, two 32 bit multiply** only, which is faster on my Intel Celeron and will &mdash; in all likelihood &mdash; also perform better on many other hardware platforms:
+I did look into the 32 bit case and found: a 32 bit multiplication unit can reverse 7 bits this way, but not 8.[^1] But there are several options to do the 7 bit reverse, including one that lead me to a solution with **6 operations, two 32 bit multiply** only, which is faster on my Intel Celeron and will &mdash; in all likelihood &mdash; also perform better on many other hardware platforms [^2]:
 
 [^1]: At least within the mask-and-shift scheme I consider the basic idea of this approach. There may be a solution "outside of this box", or there may be a mistake in my Python script to generate all solutions. However when looking for a solution manually, the available space to place the masks without conflict looks awfully tight, so I *believe* it is not possible.
+
+[^2]: Using a 256 byte long lookup table can be faster if (when) the lookup table is loaded into fast (cache) memory and you choose the [option](https://graphics.stanford.edu/~seander/bithacks.html#BitReverseTable) suitable for your platform.
+But it can also be slower.
 
 
 ```
