@@ -3,8 +3,8 @@
 
 int main()
 {
-    //semi_exhaustive_search_for_8bit_rev_cuda();
-    semi_exhaustive_search_for_8bit_rev();
+    semi_exhaustive_search_for_8bit_rev_cuda();
+    //semi_exhaustive_search_for_8bit_rev();
 
     return 0;
 }

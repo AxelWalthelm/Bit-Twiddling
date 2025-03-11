@@ -40,12 +40,16 @@ namespace {
 				return false; // quick test failed
 		}
 
+		#ifndef __CUDA_ARCH__
 		printf("full test: 0x%08x 0x%08x 0x%08x\n", replicate, select, shift);
+		#endif
 		for (int i = 0; i < 256; i++)
 		{
 			uint8_t value = bits_mul_and_mul(i, replicate, select, shift) & test_mask;
 			uint8_t expected = bits_rev8(i) & test_mask;
+			#ifndef __CUDA_ARCH__
 			printf("    i=0x%02x value=0x%02x expected=0x%02x\n", i, value, expected);
+			#endif
 			if (value != expected)
 				return false;
 		}

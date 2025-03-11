@@ -43,7 +43,7 @@ void semi_exhaustive_search_for_8bit_rev_kernel(uint64_t start, int steps, int n
     const uint64_t block_index = blockIdx.x *(uint64_t) blockDim.x + threadIdx.x;
     const uint64_t index = start + block_index * steps;
 
-    k_out_of_n_bits<uint32_t> replicate(n_rep, 32);
+    generate_replicator replicate(n_rep);
     k_out_of_n_bits<uint32_t> select(n_sel, 32);
     k_out_of_n_bits<uint32_t> shift(n_shi, 32);
 
@@ -73,11 +73,11 @@ void semi_exhaustive_search_for_8bit_rev_kernel(uint64_t start, int steps, int n
 
 void semi_exhaustive_search_for_8bit_rev_cuda()
 {
-    int n_rep = 4;
+    int n_rep = 1;
     int n_sel = 8;
     int n_shi = 5;
 
-    k_out_of_n_bits<uint32_t> replicate(n_rep, 32);
+    generate_replicator replicate(n_rep);
     k_out_of_n_bits<uint32_t> select(n_sel, 32);
     k_out_of_n_bits<uint32_t> shift(n_shi, 32);
     const uint64_t N = generators::get_count(shift, select, replicate);

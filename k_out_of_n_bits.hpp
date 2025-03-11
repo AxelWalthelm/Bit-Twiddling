@@ -392,7 +392,7 @@ public:
 	uint32_t operator*() const { return get(); }
 
 	CUDA_ALL
-	uint32_t operator[](int i) const { assert(i == 0); return get(); }
+	uint32_t operator[](int i) const { assert(i == 0); return i == 0 ? get() : 0; }
 
 	CUDA_ALL
 	int get_count() const { return count; }
