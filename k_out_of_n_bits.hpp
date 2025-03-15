@@ -538,7 +538,7 @@ namespace generators
 	CUDA_ALL
 	inline bool set_index(uint64_t index, TGenerator& generator) 
 	{
-		return index < generator.get_count() && generator.set_index(index);
+		return index < (uint64_t)generator.get_count() && generator.set_index(index);
 	}
 
 	template<typename TGenerator, typename ... TGenerators>

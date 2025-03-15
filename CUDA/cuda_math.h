@@ -6,6 +6,7 @@
 // e.g. to use different hardware for better performance.
 
 #include <stdint.h>
+#include <type_traits>
 
 namespace
 {
@@ -129,14 +130,14 @@ uint32_t uint32_sqrt(uint32_t value) { return host::uint32_sqrt_float_and_check(
 // but "#include <cuda/cmath>" is not always available and documentation states that
 // it is better for 64 bit or unsigned, but not for int.
 // For unsigned types "min(value, 1 + ((value - 1) / divisor)" is used.
-template<typename INT>
-__device__ __host__ inline
-INT div_ceil(INT a, INT b) { return (a + b - 1) / b; }
 #else // #ifdef __CUDACC__
-inline
-template<typename INT>
-INT div_ceil(INT a, INT b) { return (a + b - 1) / b; }
 #endif // #ifdef __CUDACC__
+template<typename INT1, typename INT2>
+CUDA_ALL inline
+typename std::common_type<INT1, INT2>::type div_ceil(INT1 a, INT2 b)
+{
+	return (typename std::common_type<INT1, INT2>::type(a) + b - 1) / b;
+}
 
 
 #if 0
