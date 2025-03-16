@@ -308,11 +308,32 @@ public:
 // Replicator mask generator
 /*
     //      00000001000000010000000100000001
-    // k=0         *       *       *       *  4 => 1^4 = 1
-    // k=1  *     ***     ***     ***     ** 23 => 3^4 = 81
-    // k=2  **   *****   *****   *****   *** 38 => 5^4 = 625
-    // k=3  *** ******* ******* ******* **** 38 => 7^4 = 2401
-    // k=4  ******************************** 38 => 9^4 = 6561
+    // k=0         *       *       *       *   1^4 = 1
+    // k=1  *     ***     ***     ***     **   3^4 = 81
+    // k=2  **   *****   *****   *****   ***   5^4 = 625
+    // k=3  *** ******* ******* ******* ****   7^4 = 2401
+    // k=4  ********************************   9^4 = 6561
+
+	Bit 0 of replicator mask should always be 1, because:
+	assuming there is a solution where Bit 0 to n are 0 and Bit n+1 is 1,
+	then we can construct a solution with Bit 0 set to 1 by
+	- shift replicator mask right n times
+	- shift selector mask right n times
+	- shift shift mask left n times
+	Note that this argumentation does not conflict with the quite similar reasoning,
+	that the result should always be in the highest bits, because:
+	assuming there is a solution where the result is n bits to the right,
+	then we can construct a solution with the result at the highest bits by
+	- shift shift mask left n times
+
+	It would make sense to limit the distances between set bits.
+	Unfortunately this makes the generator more complicated,
+	because in the cases where sum of the distances is less than 32,
+	a 5th bit set to 1 has to be considered.
+
+	It seems easier to stay with a fixed distance with some variation
+	and use a 5th bit at default position 32 (out of the mask)
+	which may variate into the mask with negative variation offset.
 */
 class generate_replicator
 {
