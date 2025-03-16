@@ -43,7 +43,8 @@ namespace
             }
         }
 
-        std::for_each(threads.begin(), threads.end(), std::mem_fn(&std::thread::join));
+        for (std::thread& thread: threads)
+            thread.join();
     }
 
 } // anonymous namespace

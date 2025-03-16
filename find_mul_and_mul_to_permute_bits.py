@@ -240,11 +240,17 @@ if False:  # no solutions
         (1, 2, 3, 4, 5, 6, 7, 8),
         right_shift_max = 7)
 
-if False:  # a few solutions
+if False:  # a few solutions, but none that generates a constant zero bit to the right
     find_padding_and_combined_mask(
         32,
         (8, 7, 6, 5, 4, 3, 2, 1),
         (1, 2, 3, 4, 5, 6, 7))
+
+if False:  # no solutions, as was to be expected from previous case
+    find_padding_and_combined_mask(
+        32,
+        (8, 7, 6, 5, 4, 3, 2, 1),
+        (1, 2, 3, 4, 5, 6, 7, 0))
 
 if True:  # 2 solutions
     find_padding_and_combined_mask(

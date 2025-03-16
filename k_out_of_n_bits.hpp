@@ -305,7 +305,7 @@ public:
 	}
 };
 
-// TODO: Replicator mask generator
+// Replicator mask generator
 /*
     //      00000001000000010000000100000001
     // k=0         *       *       *       *  4 => 1^4 = 1
@@ -345,6 +345,7 @@ public:
 	const int count;
 	int index;
 	int counters[4];
+	uint32_t bits;
 
 	CUDA_ALL
 	void reset()
@@ -353,6 +354,8 @@ public:
 
 		for (int i = 0; i < 4; i++)
 			counters[i] = 0;
+
+		bits = get_bits();
 	}
 
 
@@ -381,12 +384,12 @@ public:
 		printf("%s%s(%d) %3d/%d: ", begin, name, k, index, count);
 		for (int i = 0; i < 4; i++)
 			printf(" %2d", counters[i]);
-		printf(" 0x%08x", get_bits());
+		printf(" 0x%08x", bits);
 		printf("%s", end);
 	}
 
 	CUDA_ALL
-	uint32_t get() const { return get_bits(); }
+	uint32_t get() const { assert(get_bits() == bits); return bits; }
 
 	CUDA_ALL
 	uint32_t operator*() const { return get(); }
@@ -414,6 +417,8 @@ public:
 			index = index / n;
 		}
 		assert(index == 0);
+
+		bits = get_bits();
 
 		return true;
 	}
@@ -450,9 +455,12 @@ public:
 
 		index++;
 
+		bits = get_bits();
+
 		#ifndef NDEBUG
 		// self-test
 		{
+			printf("generate_replicator self-test\n");
 			generate_replicator other(k);
 			other.set_index(index);
 			for (int i = 0; i < 4; i++)
