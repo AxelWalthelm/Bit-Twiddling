@@ -6,6 +6,7 @@ cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 
 project(BitTwiddlingProject LANGUAGES CXX CUDA)
 
+find_package(Threads)
 include(CTest)
 
 # WARNING: compile for one architecture only to avoid headers being compiled multiple times with different __CUDA_ARCH__ defined.
@@ -33,7 +34,7 @@ add_library(BitTwiddling STATIC
   cuda_device_time.cu
 )
 
-target_link_libraries(BitTwiddling ${CUDA_LIBRARIES})
+target_link_libraries(BitTwiddling ${CUDA_LIBRARIES} Threads::Threads)
 
 # Request that BitTwiddling be built with -std=c++11
 # As this is a public compile feature anything that links to BitTwiddling

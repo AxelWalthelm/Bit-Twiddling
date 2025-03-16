@@ -18,10 +18,12 @@
 #include "BitTwiddling.h"
 #include <cuda_runtime.h>
 #include <cuda.h>
+#include "../parallel_for_items.hpp"
 
 #if defined(NDEBUG) && !defined(__OPTIMIZE__)
 #pragma message("warning: CUDA host code not optimized")
 #endif
+
 
 void semi_exhaustive_search_for_8bit_rev_cuda()
 {
@@ -43,26 +45,21 @@ void semi_exhaustive_search_for_8bit_rev_cuda()
     const uint64_t iterations = div_ceil(blocks_total, iteration_blocks);
     printf("Total number of iterations: %" PRIu64 "\n", iterations);
     printf("Combinations per iteration: %" PRIu64 " >= %" PRIu64 "\n", iteration_blocks * threads * steps, div_ceil(N, iterations));
-    for (uint64_t iteration = 30000; iteration < iterations; iteration++)
-    {
-        auto start_time = GetHighResolutionTime();
-
-        uint64_t start = iteration * iteration_blocks;
-        printf("%" PRIu64 "/%" PRIu64 ": semi_exhaustive_search_for_8bit_rev_kernel<<<0x%08x, %d>>>(0x%lx, 0x%x, %d, %d, %d)\n",
-            iteration, iterations, (uint32_t)iteration_blocks, threads, start, steps, n_rep, n_sel, n_shi);
-
-        #if 1
-            CUDA_DO_SYNC(semi_exhaustive_search_for_8bit_rev_kernel<<<(uint32_t)iteration_blocks, threads>>>(start, steps, n_rep, n_sel, n_shi));
-        #else
+    parallel_for_range(37853, iterations,
+        [=](uint64_t iteration)
+        {
+            auto start_time = GetHighResolutionTime();
+            uint64_t start = iteration * iteration_blocks;
             semi_exhaustive_search_for_8bit_rev_cpu((uint32_t)iteration_blocks, threads, start, steps, n_rep, n_sel, n_shi);
-        #endif
-
-        auto stop_time = GetHighResolutionTime();
-        //printf("\n");
-        printf("grid in %.3f s\n", GetHighResolutionTimeElapsedNs(start_time, stop_time) * 0.000000001);
-        //break;
-
-    }
+            printf("%" PRIu64 "/%" PRIu64 " CPU in %.3fs\n", iteration, iterations, GetHighResolutionTimeElapsedNs(start_time) * 1e-9);
+        },
+        [=](uint64_t iteration)
+        {
+            auto start_time = GetHighResolutionTime();
+            uint64_t start = iteration * iteration_blocks;
+            CUDA_DO_SYNC(semi_exhaustive_search_for_8bit_rev_kernel<<<(uint32_t)iteration_blocks, threads>>>(start, steps, n_rep, n_sel, n_shi));
+            printf("%" PRIu64 "/%" PRIu64 " GPU in %.3fs\n", iteration, iterations, GetHighResolutionTimeElapsedNs(start_time) * 1e-9);
+        });
 
     printf("Done.");
 }
