@@ -134,6 +134,14 @@ void main()
 	return;
 #endif
 
+#if 1
+	// test generate_replicator
+	generate_replicator_test();
+	printf("<return>\n");
+	getchar();
+	return;
+#endif
+
 	semi_exhaustive_search_for_8bit_rev();
 	printf("<return>\n");
 	getchar();

@@ -27,9 +27,9 @@
 
 void semi_exhaustive_search_for_8bit_rev_cuda()
 {
-    int n_rep = 1;
-    int n_sel = 8;
-    int n_shi = 5;
+    int n_rep = 1; // 3
+    int n_sel = 8; // 8
+    int n_shi = 5; // 4-6
 
     generate_replicator replicate(n_rep);
     k_out_of_n_bits<uint32_t> select(n_sel, 32);

@@ -3,6 +3,8 @@
 #include "k_out_of_n_bits_test.h"
 #include <stdio.h>
 #include <stdint.h>
+#include <vector>
+#include <string>
 #include "HighResolutionTimer.h"
 
 // Use assert() for test.
@@ -112,5 +114,63 @@ void k_out_of_n_bits_test()
 		} while (generators::next(seq1, seq2));
 
 		printf("\n");
+	}
+}
+
+void generate_replicator_test()
+{
+	constexpr int ks[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+	constexpr bool bools[] = { false, true };
+
+	std::vector<std::string> table;
+
+	for (const bool do_skip_old: bools)
+	{
+		for (const bool do_force_bit0: bools)
+		{
+			for (const int k: ks)
+			{
+				generate_replicator seq(k, do_skip_old, do_force_bit0);
+				generate_replicator rnd(k, do_skip_old, do_force_bit0);
+				printf("k=%d n=%d\n", k, seq.n);
+
+				int count = 0;
+				do
+				{
+					count++;
+
+					bool do_print = seq.index < 100;
+
+					if (do_print) seq.print("seq");
+
+					rnd.set_index(seq.index);
+					if (do_print) rnd.print("rnd");
+
+					if (seq.index > 1000000)
+					{
+						break;
+					}
+
+					assert(seq.k == rnd.k);
+					assert(seq.n == rnd.n);
+					assert(seq.index == rnd.index);
+					for (int i = 0; i < seq.k; i++)
+						assert(seq.counters[i] == rnd.counters[i]);
+					assert(seq.bits == rnd.bits);
+
+				} while (seq.next());
+
+				char buf[512];
+				snprintf(buf, sizeof(buf), "do_skip_old=%d do_force_bit0=%d k=%d seq.count=%5d count=%5d skipped=%5d\n", do_skip_old, do_force_bit0, k, seq.count, count, seq.count - count);
+				printf("%s", buf);
+				table.emplace_back(buf);
+			}
+		}
+	}
+
+	printf("\n");
+	for (auto const& line: table)
+	{
+		printf("%s", line.c_str());
 	}
 }
