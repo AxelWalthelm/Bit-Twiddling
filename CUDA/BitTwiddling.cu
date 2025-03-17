@@ -45,7 +45,7 @@ void semi_exhaustive_search_for_8bit_rev_cuda()
     const uint64_t iterations = div_ceil(blocks_total, iteration_blocks);
     printf("Total number of iterations: %" PRIu64 "\n", iterations);
     printf("Combinations per iteration: %" PRIu64 " >= %" PRIu64 "\n", iteration_blocks * threads * steps, div_ceil(N, iterations));
-    parallel_for_range(124452, iterations,
+    parallel_for_range(378222, iterations,
         [=](uint64_t iteration)
         {
             auto start_time = GetHighResolutionTime();

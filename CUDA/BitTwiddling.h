@@ -30,20 +30,18 @@ void semi_exhaustive_search_for_8bit_rev_impl(unsigned int blockIdx_x, unsigned 
     {
         //uint64_t istart = generators::get_index(shift, select, replicate);
         //printf("%08lx-\n", istart);
-        for (int step = 0; step < steps; step++)
+        do
         {
             if (is_8bit_reverse(*replicate, *select, *shift))
             {
-                printf("solution!!!\n");
+                printf("solution at index=%" PRIu64 "!!!\n", generators::get_index(shift, select, replicate));
                 printf("counters:");
                 replicate.print("replicate", " ", " ");
                 select.print("select", " ", " ");
                 shift.print("shift", " ", "\n");
             }
-
-            if (!generators::next(shift, select, replicate))
-                break;
         }
+        while (generators::next_of(steps, shift, select, replicate));
         //uint64_t istop = generators::get_index(shift, select, replicate);
         //printf("%" PRIu64 "-%" PRIu64 " \r", istart, istop);
     }

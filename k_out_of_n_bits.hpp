@@ -303,6 +303,19 @@ public:
 
 		return true;
 	}
+
+	CUDA_ALL
+	bool next_of(int& steps)
+	{
+		if (steps <= 0)
+			return false;
+
+		if (!next())
+			return false;
+
+		--steps;
+		return true;
+	}
 };
 
 // Replicator mask generator
@@ -425,10 +438,18 @@ class generate_replicator
 	}
 
 	CUDA_ALL
-	bool skip_invalid_states()
+	bool skip_invalid_states(int* steps = nullptr)
 	{
 		while (!is_valid_state())
 		{
+			if (steps)
+			{
+				if (*steps <= 0)
+					return false;
+
+				--*steps;
+			}
+
 			if (!next_internal())
 				return false;
 		}
@@ -575,19 +596,19 @@ public:
 
 		bits = get_bits();
 
-#ifndef NDEBUG
-		// self-test
-		{
-			static bool do_print = true;
-			if (do_print) printf("generate_replicator self-test is active\n");
-			do_print = false;
+		return ok;
+	}
 
-			generate_replicator other(k, do_skip_old, do_force_bit0); // this may call next_internal(), so this test must not be in next_internal()
-			other.set_index(index);
-			for (int i = 0; i < 4; i++)
-				assert(counters[i] == other.counters[i]);
-		}
-#endif
+
+	CUDA_ALL
+	bool next_of(int& steps)
+	{
+		if (steps <= 0)
+			return false;
+
+		bool ok = next_internal() && skip_invalid_states(&steps);
+
+		bits = get_bits();
 
 		return ok;
 	}
@@ -615,6 +636,36 @@ namespace generators
 		generator.reset();
 
 		return next(generators ...);
+	}
+
+
+	// A recursive variadic function to increment multiple generators like k_out_of_n_bits limited to a number of steps
+
+	template <typename TGenerator>
+	CUDA_ALL
+	inline bool next_of(int& steps, TGenerator& generator)
+	{
+		return generator.next_of(steps);
+	}
+
+	template<typename TGenerator, typename ... TGenerators>
+	CUDA_ALL
+	inline bool next_of(int& steps, TGenerator& generator, TGenerators& ... generators)
+	{
+		if (generator.next_of(steps))
+			return true;
+
+		generator.reset();
+
+		int count = generator.get_count();
+		int remain = steps % count;
+		steps /= count;
+
+		bool ok = next_of(steps, generators ...);
+
+		steps = steps * count + remain;
+
+		return ok;
 	}
 
 
