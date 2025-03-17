@@ -730,4 +730,37 @@ namespace generators
 		auto rem = index % count;
 		return set_index(div, generators ...) && generator.set_index(rem);
 	}
+
+
+	// A recursive variadic function to set index of multiple generators like k_out_of_n_bits limited by steps
+
+	template <typename TGenerator>
+	CUDA_ALL
+	inline bool set_index_of(int& steps, uint64_t index, TGenerator& generator) 
+	{
+		if (index >= (uint64_t)generator.get_count())
+			return false;
+
+		bool ok = generator.set_index(index);
+		steps -= generator.get_index() - index;
+		return ok && steps >= 0;
+	}
+
+	template<typename TGenerator, typename ... TGenerators>
+	CUDA_ALL
+	inline bool set_index_of(int& steps, uint64_t index, TGenerator& generator, TGenerators& ... generators)
+	{
+		auto count = generator.get_count();
+		auto div = index / count;
+		auto rem = index % count;
+
+		int remain = steps % count;
+		steps /= count;
+
+		bool ok = set_index_of(steps, div, generators ...);
+
+		steps = steps * count + remain;
+
+		return ok && set_index_of(steps, rem, generator);
+	}
 }

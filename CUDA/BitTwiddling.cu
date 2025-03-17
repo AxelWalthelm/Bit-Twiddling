@@ -31,6 +31,11 @@ void semi_exhaustive_search_for_8bit_rev_cuda()
     int n_sel = 8; // 8
     int n_shi = 5; // 4-6
 
+    // iteration per iterations
+    // blocks per iteration (iteration=grid)
+    // threads per block
+    // steps per thread
+
     generate_replicator replicate(n_rep);
     k_out_of_n_bits<uint32_t> select(n_sel, 32);
     k_out_of_n_bits<uint32_t> shift(n_shi, 32);
@@ -45,20 +50,36 @@ void semi_exhaustive_search_for_8bit_rev_cuda()
     const uint64_t iterations = div_ceil(blocks_total, iteration_blocks);
     printf("Total number of iterations: %" PRIu64 "\n", iterations);
     printf("Combinations per iteration: %" PRIu64 " >= %" PRIu64 "\n", iteration_blocks * threads * steps, div_ceil(N, iterations));
-    parallel_for_range(378222, iterations,
+    parallel_for_range(0 /*div_ceil(uint64_t(35) * select.count * shift.count, iteration_blocks * threads * steps)*/, iterations,
         [=](uint64_t iteration)
         {
             auto start_time = GetHighResolutionTime();
-            uint64_t start = iteration * iteration_blocks;
-            semi_exhaustive_search_for_8bit_rev_cpu((uint32_t)iteration_blocks, threads, start, steps, n_rep, n_sel, n_shi);
+            uint64_t start_index = iteration * iteration_blocks * threads * steps;
+            semi_exhaustive_search_for_8bit_rev_cpu((uint32_t)iteration_blocks, threads, start_index, steps, n_rep, n_sel, n_shi);
             printf("%" PRIu64 "/%" PRIu64 " CPU in %.3fs\n", iteration, iterations, GetHighResolutionTimeElapsedNs(start_time) * 1e-9);
         },
         [=](uint64_t iteration)
         {
             auto start_time = GetHighResolutionTime();
-            uint64_t start = iteration * iteration_blocks;
-            CUDA_DO_SYNC(semi_exhaustive_search_for_8bit_rev_kernel<<<(uint32_t)iteration_blocks, threads>>>(start, steps, n_rep, n_sel, n_shi));
+            uint64_t start_index = iteration * iteration_blocks * threads * steps;
+            CUDA_DO_SYNC(semi_exhaustive_search_for_8bit_rev_kernel<<<(uint32_t)iteration_blocks, threads>>>(start_index, steps, n_rep, n_sel, n_shi));
             printf("%" PRIu64 "/%" PRIu64 " GPU in %.3fs\n", iteration, iterations, GetHighResolutionTimeElapsedNs(start_time) * 1e-9);
+
+            static int next_long_print_in = 0;
+            if (--next_long_print_in <= 0)
+            {
+                next_long_print_in = 10;
+
+                generate_replicator replicate(n_rep);
+                k_out_of_n_bits<uint32_t> select(n_sel, 32);
+                k_out_of_n_bits<uint32_t> shift(n_shi, 32);
+
+                generators::set_index(start_index, shift, select, replicate);
+                printf("counters:");
+                replicate.print("replicate", " ", " ");
+                select.print("select", " ", " ");
+                shift.print("shift", " ", "\n");
+            }
         });
 
     printf("Done.");

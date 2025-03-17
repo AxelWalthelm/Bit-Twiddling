@@ -47,13 +47,14 @@ namespace {
 		{
 			uint8_t value = bits_mul_and_mul(i, replicate, select, shift) & test_mask;
 			uint8_t expected = bits_rev8(i) & test_mask;
-			#ifndef __CUDA_ARCH__
-			printf("    i=0x%02x value=0x%02x expected=0x%02x\n", i, value, expected);
-			#endif
 			if (value != expected)
+			{
+				printf("full test fail i=0x%02x value=0x%02x expected=0x%02x\n", i, value, expected);
 				return false;
+			}
 		}
 
+		printf("full test success\n");
 		return true;
 	}
 
