@@ -14,7 +14,7 @@ namespace
         uint64_t item_start,
         uint64_t item_stop,
         std::function<void (uint64_t item)> functor_background,
-        std::function<void (uint64_t item)> functor_foreground = nullptr)
+        std::function<uint64_t (uint64_t item)> functor_foreground = nullptr)
     {
         std::atomic<uint64_t> atomic_count(item_start);
 
@@ -39,7 +39,11 @@ namespace
             uint64_t item;
             while ((item = atomic_count++) < item_stop)
             {
-                functor_foreground(item);
+                uint64_t new_item = functor_foreground(item);
+
+                uint64_t current_item = atomic_count;
+                while(current_item < new_item && !atomic_count.compare_exchange_weak(current_item, new_item))
+                    ;
             }
         }
 

@@ -26,11 +26,16 @@ void semi_exhaustive_search_for_8bit_rev_impl(unsigned int blockIdx_x, unsigned 
     k_out_of_n_bits<uint32_t> select(n_sel, 32);
     k_out_of_n_bits<uint32_t> shift(n_shi, 32);
 
-    if (generators::set_index_of(steps, index, shift, select, replicate))
+    if (generators::set_index(index, shift, select, replicate))
     {
-        //uint64_t istart = generators::get_index(shift, select, replicate);
+        uint64_t istart = generators::get_index(shift, select, replicate);
+        if (istart > index)
+        {
+            uint64_t skipped = istart - index;
+            steps = uint64_t(steps) > skipped ? steps - int(skipped) : 0;
+        }
         //printf("%08lx-\n", istart);
-        do
+        for (int step = 0; step < steps; step++)
         {
             if (is_8bit_reverse(*replicate, *select, *shift))
             {
@@ -40,8 +45,10 @@ void semi_exhaustive_search_for_8bit_rev_impl(unsigned int blockIdx_x, unsigned 
                 select.print("select", " ", " ");
                 shift.print("shift", " ", "\n");
             }
+
+            if (!generators::next(shift, select, replicate))
+                break;
         }
-        while (generators::next_of(steps, shift, select, replicate));
         //uint64_t istop = generators::get_index(shift, select, replicate);
         //printf("%" PRIu64 "-%" PRIu64 " \r", istart, istop);
     }

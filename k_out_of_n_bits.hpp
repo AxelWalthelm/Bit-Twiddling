@@ -304,6 +304,7 @@ public:
 		return true;
 	}
 
+	// TODO: test for correctness
 	CUDA_ALL
 	bool next_of(int& steps)
 	{
@@ -600,6 +601,7 @@ public:
 	}
 
 
+	// TODO: test for correctness
 	CUDA_ALL
 	bool next_of(int& steps)
 	{
@@ -640,6 +642,7 @@ namespace generators
 
 
 	// A recursive variadic function to increment multiple generators like k_out_of_n_bits limited to a number of steps
+	// TODO: test for correctness
 
 	template <typename TGenerator>
 	CUDA_ALL
@@ -733,6 +736,7 @@ namespace generators
 
 
 	// A recursive variadic function to set index of multiple generators like k_out_of_n_bits limited by steps
+	// TODO: test for correctness
 
 	template <typename TGenerator>
 	CUDA_ALL

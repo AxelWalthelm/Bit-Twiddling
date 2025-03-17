@@ -50,7 +50,7 @@ void semi_exhaustive_search_for_8bit_rev_cuda()
     const uint64_t iterations = div_ceil(blocks_total, iteration_blocks);
     printf("Total number of iterations: %" PRIu64 "\n", iterations);
     printf("Combinations per iteration: %" PRIu64 " >= %" PRIu64 "\n", iteration_blocks * threads * steps, div_ceil(N, iterations));
-    parallel_for_range(0 /*div_ceil(uint64_t(35) * select.count * shift.count, iteration_blocks * threads * steps)*/, iterations,
+    parallel_for_range(21642 /*div_ceil(uint64_t(35) * select.count * shift.count, iteration_blocks * threads * steps)*/, iterations,
         [=](uint64_t iteration)
         {
             auto start_time = GetHighResolutionTime();
@@ -79,7 +79,16 @@ void semi_exhaustive_search_for_8bit_rev_cuda()
                 replicate.print("replicate", " ", " ");
                 select.print("select", " ", " ");
                 shift.print("shift", " ", "\n");
+
+                uint64_t new_index = generators::get_index(shift, select, replicate);
+                if (new_index > start_index)
+                {
+                    uint64_t new_item = new_index / (iteration_blocks * threads * steps);
+                    return new_item > 2 ? new_item - 2 : 0; // request to skip items
+                }
             }
+
+            return iteration;
         });
 
     printf("Done.");
