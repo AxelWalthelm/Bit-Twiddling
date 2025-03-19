@@ -1,6 +1,7 @@
 #include "../semi_exhaustive_search_for_8bit_rev.h"
 #include "BitTwiddling.h"
 #include <signal.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <atomic>
@@ -24,7 +25,14 @@ void my_handler(int s)
 
 int main()
 {
-    signal(SIGINT, my_handler);
+    struct sigaction sigIntHandler;
+    sigIntHandler.sa_handler = my_handler;
+    sigemptyset(&sigIntHandler.sa_mask);
+    sigIntHandler.sa_flags = 0;
+ 
+    sigaction(SIGINT, &sigIntHandler, NULL);
+    sigaction(SIGTERM, &sigIntHandler, NULL);
+
 
     semi_exhaustive_search_for_8bit_rev_cuda();
     //semi_exhaustive_search_for_8bit_rev();
