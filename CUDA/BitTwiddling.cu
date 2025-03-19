@@ -19,6 +19,8 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include "../parallel_for_items.hpp"
+#include "main.h"
+#include <set>
 
 #if defined(NDEBUG) && !defined(__OPTIMIZE__)
 #pragma message("warning: CUDA host code not optimized")
@@ -50,7 +52,22 @@ void semi_exhaustive_search_for_8bit_rev_cuda()
     const uint64_t iterations = div_ceil(blocks_total, iteration_blocks);
     printf("Total number of iterations: %" PRIu64 "\n", iterations);
     printf("Combinations per iteration: %" PRIu64 " >= %" PRIu64 "\n", iteration_blocks * threads * steps, div_ceil(N, iterations));
-    parallel_for_range(21642 /*div_ceil(uint64_t(35) * select.count * shift.count, iteration_blocks * threads * steps)*/, iterations,
+    uint64_t iteration0 = 0; // div_ceil(uint64_t(35) * select.count * shift.count, iteration_blocks * threads * steps)
+    constexpr char iteration0_file[] = "results_last_item.txt";
+    if (iteration0 == 0)
+    {
+        printf("reading from %s\n", iteration0_file);
+        FILE* file = fopen(iteration0_file, "rt");
+        if (file)
+        {
+            if (1 != fscanf(file, "%" PRIu64 "\n", &iteration0))
+                throw std::runtime_error("failed to read iteration0");
+            fclose(file);
+        }
+    }
+    std::set<uint64_t> done_iterations { iteration0 > 0 ? iteration0 - 1 : 0 };
+    parallel_for_range(iteration0, iterations,
+        // background thread worker
         [=](uint64_t iteration)
         {
             auto start_time = GetHighResolutionTime();
@@ -58,7 +75,8 @@ void semi_exhaustive_search_for_8bit_rev_cuda()
             semi_exhaustive_search_for_8bit_rev_cpu((uint32_t)iteration_blocks, threads, start_index, steps, n_rep, n_sel, n_shi);
             printf("%" PRIu64 "/%" PRIu64 " CPU in %.3fs\n", iteration, iterations, GetHighResolutionTimeElapsedNs(start_time) * 1e-9);
         },
-        [=](uint64_t iteration)
+        // foreground thread worker
+        [&](uint64_t iteration)
         {
             auto start_time = GetHighResolutionTime();
             uint64_t start_index = iteration * iteration_blocks * threads * steps;
@@ -69,10 +87,6 @@ void semi_exhaustive_search_for_8bit_rev_cuda()
             if (--next_long_print_in <= 0)
             {
                 next_long_print_in = 10;
-
-                generate_replicator replicate(n_rep);
-                k_out_of_n_bits<uint32_t> select(n_sel, 32);
-                k_out_of_n_bits<uint32_t> shift(n_shi, 32);
 
                 generators::set_index(start_index, shift, select, replicate);
                 printf("counters:");
@@ -89,7 +103,44 @@ void semi_exhaustive_search_for_8bit_rev_cuda()
             }
 
             return iteration;
+        },
+        // notification that a worker is done; called mutex-locked by all threads, must not block
+        [&](uint64_t iteration)
+        {
+            //printf("--> done %" PRIu64 "\n", iteration);
+
+            done_iterations.insert(iteration);
+
+            //printf("done_iterations"); for (auto i: done_iterations) printf(" %" PRIu64, i); printf("\n");
+
+            bool has_new_min = false;
+            while (done_iterations.size() >= 2)
+            {
+                auto first = done_iterations.begin();
+                auto second = std::next(first);
+                if (*first + 1 != *second)
+                    break;
+
+                done_iterations.erase(first);
+                has_new_min = true;
+            }
+
+            if (has_new_min)
+            {
+                //printf("saving to %s\n", iteration0_file);
+                FILE* file = fopen(iteration0_file, "wt");
+                if (file)
+                {
+                    auto first = done_iterations.begin();
+                    fprintf(file, "%" PRIu64 "\n", *first);
+                    fclose(file);
+                }
+            }
+
+            //printf("<-- done %" PRIu64 "\n", iteration);
+
+            return !global_do_terminate;
         });
 
-    printf("Done.");
+    printf("Done.\n");
 }
