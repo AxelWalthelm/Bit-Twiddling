@@ -22,7 +22,7 @@ void semi_exhaustive_search_for_8bit_rev_impl(unsigned int blockIdx_x, unsigned 
     const uint64_t block_index = blockIdx_x *(uint64_t) blockDim_x + threadIdx_x;
     const uint64_t index = start_index + block_index * steps;
 
-    generate_replicator replicate(n_rep);
+    generate_replicator replicate(std::abs(n_rep), n_rep < 0);
     k_out_of_n_bits<uint32_t> select(n_sel, 32);
     k_out_of_n_bits<uint32_t> shift(n_shi, 32);
 
