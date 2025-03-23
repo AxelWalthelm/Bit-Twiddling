@@ -31,8 +31,10 @@ void semi_exhaustive_search_for_8bit_rev_cuda()
 {
     int n_rep = 1; // 3
     int n_sel = 8; // 8
-    int n_shi = 4; // 4-6
+    int n_shi = 6; // 4-6
+    // 1 8 4: no solution
     // 1 8 5: no solution
+    // 1 8 6:
 
     // iteration per iterations
     // blocks per iteration (iteration=grid)

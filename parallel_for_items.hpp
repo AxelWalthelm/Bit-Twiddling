@@ -27,7 +27,7 @@ namespace
         std::vector<std::thread> threads(thread_count);
         for(size_t i = 0; i < thread_count; ++i)
         {
-            threads[i] = std::thread([&]()
+            threads[i] = std::thread([&, item_stop]()
             {
                 uint64_t item;
                 while ((item = atomic_count++) < item_stop)
